@@ -1,10 +1,8 @@
 const packer = require('.')({
-	rotate: true,
-	height: 594,
+	height: 5940,
 	width: 800,
-	max_size: true,
 })
 
-const A1LandscapePaper = {width: 851, height: 594}
+const A1LandscapePaper = {width: 800, height: 594}
 
 console.log(packer([A1LandscapePaper]))
