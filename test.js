@@ -1,4 +1,4 @@
-const packer = require('.')({
+const packer = require('./dist')({
 	width: 800,
 })
 

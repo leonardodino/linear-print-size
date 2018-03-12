@@ -1,4 +1,4 @@
-const Packer = require('./lib/Packer.js')
+const Packer = require('./Packer.js')
 
 module.exports = (options = {}) => (sprites = []) => {
 	const instance = new Packer(options)
