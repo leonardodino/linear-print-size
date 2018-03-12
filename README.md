@@ -1,13 +1,13 @@
-# rect-packer
+# linear-print-size
 
 ```shell
-$ npm i --save rect-packer
+$ npm i --save linear-print-size
 ```
 
 or
 
 ```shell
-$ yarn add rect-packer
+$ yarn add linear-print-size
 ```
 
 ## modes
