@@ -8,8 +8,8 @@ class Packer {
 			rotate: true,
 			padding: 0,
 			width: 0,
-			height: Infinity,
 			...params,
+			height: Infinity,
 		}
 
 		this.input_sprites = []
