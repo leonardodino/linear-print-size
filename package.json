@@ -1,12 +1,13 @@
 {
   "name": "linear-print-size",
   "version": "0.0.0-alpha",
-  "description": "advanced rectagles-packer algorithms",
+  "description": "linear print size calculator",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "keywords": [
+    "print",
     "geometry",
     "algorithm",
     "rectangle"
