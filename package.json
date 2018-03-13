@@ -1,6 +1,6 @@
 {
   "name": "linear-print-size",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "linear print size calculator",
   "main": "dist/index.js",
   "scripts": {
