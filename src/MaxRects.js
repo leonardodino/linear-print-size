@@ -38,12 +38,9 @@ class MaxRects {
 			var bestRectIndex = -1
 
 			for(var i = 0; i < rects_indices.length; ++i){
-				var score1 = 0
-				var score2 = 0
-
 				var rect = rects[rects_indices[i]]
 
-				var newNode = this.score_rect(rect.width, rect.height, mode, score1, score2)
+				var [newNode, score1 = 0, score2 = 0] = this.score_rect(rect.width, rect.height, mode)
 
 				if(score1 < bestScore1 || (score1 === bestScore1 && score2 < bestScore2)){
 					bestScore1 = score1
@@ -52,9 +49,6 @@ class MaxRects {
 					bestRectIndex = i
 				}
 			}
-
-			// [TODO]: fix scoring, always zero
-			// console.log({score1, bestScore1, score2, bestScore2})
 
 			if(bestNode.height === 0 || bestRectIndex === -1) break
 
@@ -67,32 +61,31 @@ class MaxRects {
 
 		return [result, result_indices]
 	}
-	score_rect(width, height, mode, score1, score2){
+	score_rect(width, height, mode){
 		var newNode = empty_rect
-
-		score1 = Infinity
-		score2 = Infinity
+		var score1 = Infinity
+		var score2 = Infinity
 
 		switch (mode){
 			case MaxRects.ShortSide:
-				newNode = this.find_ss(width, height, score1, score2)
+				[newNode, score1, score2] = this.find_ss(width, height)
 				break
 
 			case MaxRects.BottomLeft:
-				newNode = this.find_bl(width, height, score1, score2)
+				[newNode, score1, score2] = this.find_bl(width, height)
 				break
 
 			case MaxRects.ContactPoint:
-				newNode = this.find_cp(width, height, score1)
+				[newNode, score1] = this.find_cp(width, height)
 				score1 = -score1
 				break
 
 			case MaxRects.LongSide:
-				newNode = this.find_ls(width, height, score2, score1)
+				[newNode, score2, score1] = this.find_ls(width, height)
 				break
 
 			case MaxRects.BestArea:
-				newNode = this.find_ba(width, height, score1, score2)
+				[newNode, score1, score2] = this.find_ba(width, height)
 				break
 		}
 
@@ -101,7 +94,7 @@ class MaxRects {
 			score2 = Infinity
 		}
 
-		return newNode
+		return [newNode, score1, score2]
 	}
 	place_rect(node){
 		var numRectanglesToProcess = this.free.length
@@ -134,10 +127,10 @@ class MaxRects {
 
 		return score
 	}
-	find_bl(width, height, bestY, bestX){
+	find_bl(width, height){
 		var bestNode = {...empty_rect}
-
-		bestY = Infinity
+		var bestY = Infinity
+		var bestX = Infinity
 
 		for(var i = 0; i < this.free.length; ++i){
 			if(this.free[i].width >= width && this.free[i].height >= height){
@@ -167,12 +160,12 @@ class MaxRects {
 			}
 		}
 
-		return bestNode
+		return [bestNode, bestY, bestX]
 	}
-	find_ss(width, height, bestShortSideFit, bestLongSideFit){
+	find_ss(width, height){
 		var bestNode = {...empty_rect}
-
-		bestShortSideFit = Infinity
+		var bestShortSideFit = Infinity
+		var bestLongSideFit = Infinity
 
 		for(var i = 0; i < this.free.length; ++i){
 			if(this.free[i].width >= width && this.free[i].height >= height){
@@ -214,12 +207,12 @@ class MaxRects {
 			}
 		}
 
-		return bestNode
+		return [bestNode, bestShortSideFit, bestLongSideFit]
 	}
-	find_ls(width, height, bestShortSideFit, bestLongSideFit){
+	find_ls(width, height){
 		var bestNode = {...empty_rect}
-
-		bestLongSideFit = Infinity
+		var bestLongSideFit = Infinity
+		var bestShortSideFit = Infinity
 
 		for(var i = 0; i < this.free.length; ++i){
 			if(this.free[i].width >= width && this.free[i].height >= height){
@@ -261,12 +254,12 @@ class MaxRects {
 			}
 		}
 
-		return bestNode
+		return [bestNode, bestShortSideFit, bestLongSideFit]
 	}
 	find_ba(width, height, bestAreaFit, bestShortSideFit){
 		var bestNode = {...empty_rect}
-
-		bestAreaFit = Infinity
+		var bestAreaFit = Infinity
+		var bestShortSideFit = Infinity
 
 		for(var i = 0; i < this.free.length; ++i){
 			var areaFit = this.free[i].width * this.free[i].height - width * height
@@ -302,12 +295,11 @@ class MaxRects {
 			}
 		}
 
-		return bestNode
+		return [bestNode, bestAreaFit, bestShortSideFit]
 	}
 	find_cp(width, height, bestContactScore){
 		var bestNode = {...empty_rect}
-
-		bestContactScore = -1
+		var bestContactScore = -1
 
 		for(var i = 0; i < this.free.length; ++i){
 			if(this.free[i].width >= width && this.free[i].height >= height){
@@ -335,7 +327,7 @@ class MaxRects {
 			}
 		}
 
-		return bestNode
+		return [bestNode, bestContactScore]
 	}
 	split_free_node(freeNode, usedNode){
 		if(
