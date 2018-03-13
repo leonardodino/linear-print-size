@@ -11,27 +11,24 @@ rect_common_interval_length = (i1start, i1end, i2start, i2end) => {
 
 
 class MaxRects {
-	constructor(width = 0, height = 0, rotate = false){
-		this.used = []
-		this.free = []
-
+	constructor(mode, width = 0, height = 0, rotate = false){
+		this.mode = mode
 		this.width = width
 		this.height = height
 		this.rotate = rotate
 
-		var rect = {
-			...empty_rect,
+		this.used = []
+		this.free = [{
 			x: 0,
 			y: 0,
 			width: width,
 			height: height,
-		}
-
-		this.free.push(rect)
+		}]
 	}
-	insert(mode, rects, rects_indices, result, result_indices){
-		result.length = 0
-		result_indices.length = 0
+	insert(rects, rects_indices){
+		const {mode} = this
+		const result = []
+		const result_indices = []
 
 		while(rects_indices.length > 0){
 			var bestNode = {...empty_rect}
@@ -56,6 +53,9 @@ class MaxRects {
 				}
 			}
 
+			// [TODO]: fix scoring, always zero
+			// console.log({score1, bestScore1, score2, bestScore2})
+
 			if(bestNode.height === 0 || bestRectIndex === -1) break
 
 			this.place_rect(bestNode)
@@ -65,7 +65,7 @@ class MaxRects {
 			rects_indices.splice(bestRectIndex, 1)
 		}
 
-		return result.length
+		return [result, result_indices]
 	}
 	score_rect(width, height, mode, score1, score2){
 		var newNode = empty_rect

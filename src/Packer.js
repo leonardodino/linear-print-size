@@ -1,6 +1,14 @@
 const MaxRects = require('./MaxRects')
 const {calc_bin_height} = require('./utils')
 
+const modes = [
+	MaxRects.BottomLeft,
+	MaxRects.ShortSide,
+	MaxRects.LongSide,
+	MaxRects.BestArea,
+	MaxRects.ContactPoint,
+]
+
 class Packer {
 	constructor(params = {}){
 		this.params = {
@@ -12,23 +20,22 @@ class Packer {
 			height: Infinity,
 		}
 
+		if(this.params.padding < 0)
+			throw new Error('Invalid padding')
+		if(this.pack_mode(this.params.mode) < 0)
+			throw new Error('Invalid packing mode')
+
 		this.input_sprites = []
 		this.input_rects = []
 
-		this.validate_params()
+		return this
 	}
 	pack_mode(mode){
 		return typeof mode === 'number'
 			? (MaxRects.Modes[mode] || -1)
 			: MaxRects.Modes.indexOf(mode)
 	}
-	validate_params(){
-		if(this.params.padding < 0)
-			throw 'Invalid padding'
-		if(this.pack_mode(this.params.mode) === -1)
-			throw 'Invalid packing mode'
-	}
-	load_sprites_info(data){
+	load(data){
 		const {
 			rotate, padding,
 			width: canvas_width,
@@ -61,48 +68,25 @@ class Packer {
 
 		return this
 	}
-	compute_results(){
-		var result = []
-		var mode = this.pack_mode(this.params.mode)
-		if(mode) return this.compute_result(mode)
-
-		var modes = [MaxRects.BottomLeft, MaxRects.ShortSide, MaxRects.LongSide, MaxRects.BestArea, MaxRects.ContactPoint]
-
-		var best = []
-		var best_height = 0
-
-		for(var i = 0; i < modes.length; i++){
-			var res = this.compute_result(modes[i])
-
-			var height = 0
-
-			for(var j = 0; j < res.length; j++) height += calc_bin_height(res[j])
-
-			if(best.length == 0 || res.length < best.length || (res.length == best.length && height < best_height)){
-				for(var j = 0; j < best.length; j++) delete best[j]
-
-				var tmp = []
-				for(var j = 0; j < best.length; j++) tmp[j] = best[j]
-				for(var j = 0; j < res.length; j++) best[j] = res[j]
-				best.length = res.length
-				for(var j = 0; j < tmp.length; j++) res[j] = tmp[j]
-				res.length = tmp.length
-
-				best_height = height
-			}else{
-				for(var j = 0; j < res.length; j++) delete res[j]
-			}
-		}
-
-		var tmp = []
-		for(var j = 0; j < best.length; j++) tmp[j] = best[j]
-		for(var j = 0; j < result.length; j++) best[j] = result[j]
-		best.length = result.length
-		for(var j = 0; j < tmp.length; j++) result[j] = tmp[j]
-		result.length = tmp.length
-		return result
+	compute(){
+		const mode = this.pack_mode(this.params.mode)
+		const compute = this.compute_result.bind(this)
+		if(mode) return compute(mode)
+		return modes.map(compute).reduce(
+			(best, result) => result.height < best.height ? result : best, {height: Infinity}
+		)
 	}
 	compute_result(mode){
+		const result = this.apply_algorithm(mode)
+		if(result.length > 1) throw new Error('multisheet error')
+		try{
+			const [{width, height, sprites: slices}] = result
+			return {slices, width, height}
+		}catch(e){
+			return {width: this.params.width, height: 0, sprites: []}
+		}
+	}
+	apply_algorithm(mode){
 		var results = []
 
 		var result_rects = []
@@ -112,14 +96,13 @@ class Packer {
 
 		for(var i = 0; i < this.input_rects.length; i++) input_indices.push(i)
 
-		var {width: w, height: h} = this.params
+		var {width: w, height: h, padding} = this.params
 
 		while(input_indices.length > 0){
 			rects_indices = input_indices.slice(0)
 
-			var packer = new MaxRects(w - this.params.padding, h - this.params.padding, this.params.rotate)
-
-			packer.insert(mode, this.input_rects, rects_indices, result_rects, result_indices)
+			var packer = new MaxRects(mode, w - padding, h - padding, this.params.rotate)
+			var [result_rects, result_indices] = packer.insert(this.input_rects, rects_indices)
 
 			var add_result = false
 
@@ -149,22 +132,21 @@ class Packer {
 				var ymax = 0
 
 				for(var i = 0; i < result_rects.length; i++){
-					var index = result_indices[i]
+					const index = result_indices[i]
+					const base_rect = this.input_rects[index]
+					const rect = result_rects[i]
 
-					var base_rect = this.input_rects[index]
-					var base_sprite = this.input_sprites[index]
+					result.sprites.push({
+						...this.input_sprites[index],
+						x: rect.x + padding,
+						y: rect.y + padding,
+						rotated: rect.width !== base_rect.width,
+					})
 
-					var sprite = {...base_sprite}
-					sprite.x = result_rects[i].x + this.params.padding
-					sprite.y = result_rects[i].y + this.params.padding
-					sprite.rotated = result_rects[i].width != base_rect.width
-
-					result.sprites.push(sprite)
-
-					xmin = Math.min(xmin, result_rects[i].x)
-					xmax = Math.max(xmax, result_rects[i].x + result_rects[i].width)
-					ymin = Math.min(ymin, result_rects[i].y)
-					ymax = Math.max(ymax, result_rects[i].y + result_rects[i].height)
+					xmin = Math.min(xmin, rect.x)
+					xmax = Math.max(xmax, rect.x + rect.width)
+					ymin = Math.min(ymin, rect.y)
+					ymax = Math.max(ymax, rect.y + rect.height)
 				}
 
 				results.push(result)
