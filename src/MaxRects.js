@@ -17,6 +17,11 @@ class MaxRects {
 		this.height = height
 		this.rotate = rotate
 
+		if(mode >= 10 && rotate){
+			this.mode -= 10
+			this.rotate = !rotate
+		}
+
 		this.used = []
 		this.free = [{
 			x: 0,

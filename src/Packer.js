@@ -1,13 +1,15 @@
 const MaxRects = require('./MaxRects')
-const {calc_bin_height} = require('./utils')
+const {calc_bin_height, pick_shortest} = require('./utils')
 
-const modes = [
+const MODES = [
 	MaxRects.BottomLeft,
 	MaxRects.ShortSide,
 	MaxRects.LongSide,
 	MaxRects.BestArea,
 	MaxRects.ContactPoint,
 ]
+
+const DISABLE_ROTATION_MODES = MODES.map(mode => mode + 10)
 
 class Packer {
 	constructor(params = {}){
@@ -57,12 +59,12 @@ class Packer {
 				if(!rotate){
 					throw new Error('Sprite cannot fit on canvas')
 				}
-				rotated = true
 				if(height > canvas_width || width > canvas_height){
 					throw new Error('Sprite cannot fit on canvas')
 				}
+				this.forced_rotate = true
+				rotated = true
 			}
-
 			return {width, height, rotated}
 		})
 
@@ -72,18 +74,28 @@ class Packer {
 		const mode = this.pack_mode(this.params.mode)
 		const compute = this.compute_result.bind(this)
 		if(mode) return compute(mode)
-		return modes.map(compute).reduce(
-			(best, result) => result.height < best.height ? result : best, {height: Infinity}
-		)
+
+		const best = pick_shortest(MODES.map(compute))
+
+		if(!best.slices) return best
+		if(!this.params.rotate) return best
+		if(this.forced_rotate) return best
+		if(best.slices.every(slice => !slice.rotated)) return best
+
+		return pick_shortest([best, ...DISABLE_ROTATION_MODES.map(compute)])
 	}
 	compute_result(mode){
 		const result = this.apply_algorithm(mode)
 		if(result.length > 1) throw new Error('multisheet error')
+
+		const {width, rotate} = this.params
+		const base = {slices: [], width, height: 0, meta: {mode, rotate}}
+
 		try{
 			const [{width, height, sprites: slices}] = result
-			return {slices, width, height}
+			return {...base, slices, width, height}
 		}catch(e){
-			return {width: this.params.width, height: 0, sprites: []}
+			return base
 		}
 	}
 	apply_algorithm(mode){
