@@ -22,11 +22,7 @@ class Packer {
 			height: Infinity,
 		}
 
-		if(this.params.padding < 0)
-			throw new Error('Invalid padding')
-		if(this.pack_mode(this.params.mode) < 0)
-			throw new Error('Invalid packing mode')
-
+		this.validate_options()
 		this.input_sprites = []
 		this.input_rects = []
 
@@ -37,7 +33,57 @@ class Packer {
 			? (MaxRects.Modes[mode] || -1)
 			: MaxRects.Modes.indexOf(mode)
 	}
+	validate_options(){
+		if(typeof this.params.rotate !== 'boolean'){
+			const error = new TypeError('Rotate must be a boolean.')
+			error.source = 'options.rotate'
+			error.reason = 'not-a-boolean'
+			throw error
+		}
+
+		if(typeof this.params.width !== 'number'){
+			const error = new TypeError('Width must be a non-negative number.')
+			error.source = 'options.width'
+			error.reason = 'not-a-number'
+			throw error
+		}
+
+		if(this.params.width < 0){
+			const error = new RangeError('Width must be a non-negative number.')
+			error.source = 'options.width'
+			error.reason = 'negative-number'
+			throw error
+		}
+
+		if(typeof this.params.padding !== 'number'){
+			const error = new TypeError('Padding must be a non-negative number.')
+			error.source = 'options.padding'
+			error.reason = 'not-a-number'
+			throw error
+		}
+
+		if(this.params.padding < 0){
+			const error = new RangeError('Padding must be a non-negative number.')
+			error.source = 'options.padding'
+			error.reason = 'negative-number'
+			throw error
+		}
+
+		if(this.pack_mode(this.params.mode) < 0){
+			const error = new RangeError(`Invalid mode. must be one of: ${JSON.stringify(MaxRects.Modes)}`)
+			error.source = 'options.mode'
+			error.reason = 'invalid'
+			throw error
+		}
+	}
 	load(data){
+		if(!Array.isArray(data)){
+			const error = new TypeError('Sprites must be an array.')
+			error.source = 'sprites'
+			error.reason = 'not-an-array'
+			throw error
+		}
+
 		const {
 			rotate, padding,
 			width: canvas_width,
@@ -52,15 +98,27 @@ class Packer {
 			let rotated = false
 
 			if(width > canvas_width && height > canvas_height){
-				throw new Error('Sprite cannot fit on canvas')
+				const error = new RangeError('Sprite is larger than canvas.')
+				error.source = 'sprite'
+				error.reason = 'out-of-bounds'
+				error.ref = sprite
+				throw error
 			}
 
 			if(width > canvas_width || height > canvas_height){
 				if(!rotate){
-					throw new Error('Sprite cannot fit on canvas')
+					const error = new RangeError('Sprite is larger than canvas.')
+					error.source = 'sprite'
+					error.reason = 'out-of-bounds'
+					error.ref = sprite
+					throw error
 				}
 				if(height > canvas_width || width > canvas_height){
-					throw new Error('Sprite cannot fit on canvas')
+					const error = new RangeError('Sprite is larger than canvas.')
+					error.source = 'sprite'
+					error.reason = 'out-of-bounds'
+					error.ref = sprite
+					throw error
 				}
 				this.forced_rotate = true
 				rotated = true
@@ -86,7 +144,13 @@ class Packer {
 	}
 	compute_result(mode){
 		const result = this.apply_algorithm(mode)
-		if(result.length > 1) throw new Error('multisheet error')
+
+		if(result.length > 1){
+			const error = new Error('Algorithm misbehaviour')
+			error.source = 'algorithm'
+			error.reason = 'multi-page'
+			throw error
+		}
 
 		const {width, rotate} = this.params
 		const base = {slices: [], width, height: 0, meta: {mode, rotate}}
