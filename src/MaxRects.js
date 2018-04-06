@@ -1,10 +1,10 @@
 const empty_rect = {x: 0, y: 0, width: 0, height: 0}
 
-rect_is_contained_in = (a, b) => {
+const rect_is_contained_in = (a, b) => {
 	return a.x >= b.x && a.y >= b.y && a.x + a.width <= b.x + b.width && a.y + a.height <= b.y + b.height
 }
 
-rect_common_interval_length = (i1start, i1end, i2start, i2end) => {
+const rect_common_interval_length = (i1start, i1end, i2start, i2end) => {
 	if(i1end < i2start || i2end < i1start) return 0
 	return Math.min(i1end, i2end) - Math.max(i1start, i2start)
 }
